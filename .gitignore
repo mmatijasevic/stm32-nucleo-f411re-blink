@@ -1,0 +1,22 @@
+# Build folder
+/Debug/
+/Release/
+
+# CubeIDE metadata
+.settings/
+*.launch
+
+# Generated files
+*.o
+*.d
+*.su
+*.elf
+*.map
+*.list
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
