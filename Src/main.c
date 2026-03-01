@@ -21,21 +21,37 @@ int main(void)
     /* PC13 input */
     GPIOC->MODER &= ~(3U << (13 * 2));
 
+
+    /* Enable SYSCFG clock */
+    RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
+
+    /* Map PC13 to EXTI13 */
+    SYSCFG->EXTICR[3] &= ~(0xF << 4);  // clear bits
+    SYSCFG->EXTICR[3] |=  (0x2 << 4);  // Port C = 0x2
+
+    /* Unmask EXTI13 */
+    EXTI->IMR |= (1 << 13);
+
+    /* Falling edge trigger (button is active low) */
+    EXTI->FTSR |= (1 << 13);
+
+    /* Enable interrupt in NVIC */
+    NVIC_EnableIRQ(EXTI15_10_IRQn);
+
+
+
     while(1)
     {
-        if(!(GPIOC->IDR & (1U << 13)))   // tipka pritisnuta
-        {
-            delay(100000);  // debounce delay
 
-            // provjeri ponovno
-            if(!(GPIOC->IDR & (1U << 13)))
-            {
-                GPIOA->BSRR = (1U << 5);  // LED ON
-            }
-        }
-        else
-        {
-            GPIOA->BSRR = (1U << (5 + 16));  // LED OFF
-        }
+    }
+}
+
+void EXTI15_10_IRQHandler(void)
+{
+    if(EXTI->PR & (1 << 13))
+    {
+        EXTI->PR = (1 << 13);  // clear pending flag
+
+        GPIOA->ODR ^= (1 << 5);  // toggle LED
     }
 }
