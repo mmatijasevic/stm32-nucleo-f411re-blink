@@ -18,24 +18,33 @@
 #include "stm32f411xe.h"
 #include <stdint.h>
 
-
 int main(void)
 {
     /* Enable FPU */
     SCB->CPACR |= ((3UL << 20) | (3UL << 22));
 
-    /* Enable GPIOA clock */
+    /* Enable GPIOA and GPIOC clock */
     RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
+    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN;
+    (void)RCC->AHB1ENR;
 
-    /* Set PA5 as output (MODER5 = 01) */
-    GPIOA->MODER &= ~(3U << (5 * 2));  // clear bits
-    GPIOA->MODER |=  (1U << (5 * 2));  // set as output
+    /* PA5 as output */
+    GPIOA->MODER &= ~(3U << (5 * 2));
+    GPIOA->MODER |=  (1U << (5 * 2));
+
+    /* PC13 as input */
+    GPIOC->MODER &= ~(3U << (13 * 2));
 
     while(1)
     {
-    	GPIOA->ODR ^= (1U << 5);   // toggle PA5
-
-    	for (volatile uint32_t i = 0; i < 500000; i++); // crude delay
+        /* Button is active LOW */
+        if(!(GPIOC->IDR & (1U << 13)))
+        {
+            GPIOA->BSRR = (1U << 5);   // LED ON
+        }
+        else
+        {
+            GPIOA->BSRR = (1U << (5 + 16)); // LED OFF
+        }
     }
-
 }
