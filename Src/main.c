@@ -17,13 +17,55 @@
  */
 
 #include <stdint.h>
+#include "stm32f411xe.h"
 
-#if !defined(__SOFT_FP__) && defined(__ARM_FP)
-  #warning "FPU is not initialized, but the project is compiling for an FPU. Please initialize the FPU before use."
-#endif
+void delay(volatile uint32_t count)
+{
+    while(count--) { __NOP(); }
+}
 
 int main(void)
 {
-    /* Loop forever */
-	for(;;);
+    /* Enable FPU */
+    SCB->CPACR |= ((3UL << 20) | (3UL << 22));
+
+    // Enable GPIOA clock
+    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
+
+    // PA5 -> Alternate function (TIM2_CH1)
+    GPIOA->MODER &= ~(0x3 << (5 * 2));
+    GPIOA->MODER |=  (0x2 << (5 * 2));  // AF mode
+    GPIOA->AFR[0] &= ~(0xF << (5 * 4));
+    GPIOA->AFR[0] |=  (0x1 << (5 * 4)); // AF1 = TIM2_CH1
+
+    // Enable TIM2 clock
+    RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
+
+    // Timer setup
+    TIM2->PSC = 84 - 1;   // 1 MHz
+    TIM2->ARR = 1000 - 1; // 0-1000 duty
+
+    // PWM mode 1, preload enable
+    TIM2->CCMR1 &= ~TIM_CCMR1_OC1M;
+    TIM2->CCMR1 |= (6 << TIM_CCMR1_OC1M_Pos); // PWM1
+    TIM2->CCMR1 |= TIM_CCMR1_OC1PE;
+
+    TIM2->CCER |= TIM_CCER_CC1E; // Enable CH1 output
+    TIM2->CR1 |= TIM_CR1_CEN;    // Start timer
+
+    while(1)
+    {
+        // Fade in
+        for(uint32_t brightness = 0; brightness <= 1000; brightness+=10)
+        {
+            TIM2->CCR1 = brightness;
+            delay(10000);
+        }
+        // Fade out
+        for(uint32_t brightness = 1000; brightness > 0; brightness-=10)
+        {
+            TIM2->CCR1 = brightness;
+            delay(10000);
+        }
+    }
 }
