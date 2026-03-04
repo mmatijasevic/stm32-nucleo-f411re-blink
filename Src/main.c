@@ -24,6 +24,9 @@ void delay(volatile uint32_t count)
     while(count--) { __NOP(); }
 }
 
+volatile uint32_t brightness = 0;
+volatile int8_t direction = 1;
+
 int main(void)
 {
     /* Enable FPU */
@@ -38,12 +41,18 @@ int main(void)
     GPIOA->AFR[0] &= ~(0xF << (5 * 4));
     GPIOA->AFR[0] |=  (0x1 << (5 * 4)); // AF1 = TIM2_CH1
 
+    // Enable GPIOC clock
+    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN;
+
     // Enable TIM2 clock
     RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
 
     // Timer setup
     TIM2->PSC = 84 - 1;   // 1 MHz
-    TIM2->ARR = 1000 - 1; // 0-1000 duty
+    TIM2->ARR = 4000 - 1; // 0-4000 duty
+    TIM2->DIER |= TIM_DIER_UIE;   // Enable update interrupt
+
+    NVIC_EnableIRQ(TIM2_IRQn);
 
     // PWM mode 1, preload enable
     TIM2->CCMR1 &= ~TIM_CCMR1_OC1M;
@@ -55,17 +64,28 @@ int main(void)
 
     while(1)
     {
-        // Fade in
-        for(uint32_t brightness = 0; brightness <= 1000; brightness+=10)
+       //cpu je slobodan
+    }
+}
+
+void TIM2_IRQHandler(void)
+{
+    if (TIM2->SR & TIM_SR_UIF)   // Update interrupt flag
+    {
+        TIM2->SR &= ~TIM_SR_UIF; // Clear flag
+
+        brightness += direction * 10;
+
+        if (brightness >= 1000)
         {
-            TIM2->CCR1 = brightness;
-            delay(10000);
+            brightness = 1000;
+            direction = -1;
         }
-        // Fade out
-        for(uint32_t brightness = 1000; brightness > 0; brightness-=10)
+        else if (brightness == 0)
         {
-            TIM2->CCR1 = brightness;
-            delay(10000);
+            direction = 1;
         }
+
+        TIM2->CCR1 = brightness;
     }
 }
