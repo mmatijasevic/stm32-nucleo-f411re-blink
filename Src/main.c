@@ -49,7 +49,7 @@ int main(void)
 
     // Timer setup
     TIM2->PSC = 84 - 1;   // 1 MHz
-    TIM2->ARR = 4000 - 1; // 0-4000 duty
+    TIM2->ARR = 1000 - 1; // 0-1000 duty
     TIM2->DIER |= TIM_DIER_UIE;   // Enable update interrupt
 
     NVIC_EnableIRQ(TIM2_IRQn);
