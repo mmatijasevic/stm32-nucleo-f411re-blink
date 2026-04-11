@@ -15,36 +15,29 @@
  *
  ******************************************************************************
  */
-#include "stm32f411xe.h"
-#include <stdint.h>
+
+#include "led.h"
+#include "button.h"
 
 int main(void)
 {
     /* Enable FPU */
     SCB->CPACR |= ((3UL << 20) | (3UL << 22));
 
-    /* Enable GPIOA and GPIOC clock */
-    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
-    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN;
-    (void)RCC->AHB1ENR;
+    LED_Init();
+    Button_Init();
 
-    /* PA5 as output */
-    GPIOA->MODER &= ~(3U << (5 * 2));
-    GPIOA->MODER |=  (1U << (5 * 2));
-
-    /* PC13 as input */
-    GPIOC->MODER &= ~(3U << (13 * 2));
 
     while(1)
     {
         /* Button is active LOW */
-        if(!(GPIOC->IDR & (1U << 13)))
+        if(Button_IsPressed())
         {
-            GPIOA->BSRR = (1U << 5);   // LED ON
+           	LED_On();
         }
         else
         {
-            GPIOA->BSRR = (1U << (5 + 16)); // LED OFF
+        	LED_Off();
         }
     }
 }
